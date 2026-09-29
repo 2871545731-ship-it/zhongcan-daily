@@ -2418,3 +2418,155 @@ img {
     margin-top: 14px;
   }
 }
+
+.profile-modal {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(780px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 36px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+}
+
+.profile-modal h2 {
+  margin: 0;
+  font-family: "Songti SC", serif;
+  font-size: 30px;
+}
+
+.profile-modal-heading > p:last-child {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 25px;
+}
+
+.profile-form > label:not(.profile-checkbox) {
+  position: relative;
+  display: grid;
+  gap: 7px;
+}
+
+.profile-form label > span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.profile-form input[type="number"],
+.profile-form select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 44px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: #fbfcfa;
+  outline: none;
+}
+
+.profile-form select {
+  padding-right: 12px;
+}
+
+.profile-form input:focus,
+.profile-form select:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(167, 67, 50, 0.08);
+}
+
+.profile-form label > small {
+  position: absolute;
+  right: 12px;
+  bottom: 14px;
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.profile-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fbfcfa;
+  cursor: pointer;
+}
+
+.profile-checkbox input {
+  accent-color: var(--red);
+}
+
+.profile-target-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 22px;
+  padding: 18px;
+  border-left: 4px solid var(--green);
+  background: var(--green-soft);
+}
+
+.profile-target-preview span,
+.profile-target-preview strong {
+  display: block;
+}
+
+.profile-target-preview span {
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.profile-target-preview strong {
+  margin-top: 4px;
+  font-family: "Songti SC", serif;
+  font-size: 25px;
+}
+
+.profile-target-preview p {
+  max-width: 390px;
+  margin: 0;
+  color: #4e6a56;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+@media (max-width: 760px) {
+  .profile-modal {
+    padding: 28px 18px 22px;
+  }
+
+  .profile-form {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-target-preview {
+    display: block;
+  }
+
+  .profile-target-preview p {
+    margin-top: 10px;
+  }
+
+  .profile-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+  }
+}

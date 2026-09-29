@@ -26,7 +26,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260929e" />
+    <link rel="stylesheet" href="./styles.css?v=20260929f" />
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   </head>
   <body>
@@ -78,6 +78,9 @@
             <h1>今晚吃什么</h1>
           </div>
           <div class="topbar-actions">
+            <button class="icon-button" id="openProfileButton" type="button" aria-label="设置营养档案" title="营养档案">
+              <i data-lucide="user-round-cog"></i>
+            </button>
             <button class="icon-button" type="button" aria-label="搜索菜谱" title="搜索菜谱">
               <i data-lucide="search"></i>
             </button>
@@ -282,28 +285,28 @@
                   <circle class="ring-value" cx="60" cy="60" r="50"></circle>
                 </svg>
                 <div class="ring-copy">
-                  <strong>82%</strong>
-                  <span>1,890 / 2,300</span>
+                  <strong id="caloriePercent">82%</strong>
+                  <span id="calorieProgress">1,890 / 2,300</span>
                   <small>千卡</small>
                 </div>
               </div>
 
               <div class="nutrient-list">
                 <div class="nutrient-row">
-                  <div><span>蛋白质</span><strong>92g</strong></div>
-                  <div class="progress"><span style="width: 84%"></span></div>
+                  <div><span>蛋白质</span><strong id="proteinValue">92g</strong></div>
+                  <div class="progress"><span id="proteinProgress" style="width: 84%"></span></div>
                 </div>
                 <div class="nutrient-row">
-                  <div><span>碳水</span><strong>218g</strong></div>
-                  <div class="progress"><span style="width: 76%"></span></div>
+                  <div><span>碳水</span><strong id="carbValue">218g</strong></div>
+                  <div class="progress"><span id="carbProgress" style="width: 76%"></span></div>
                 </div>
                 <div class="nutrient-row">
-                  <div><span>脂肪</span><strong>58g</strong></div>
-                  <div class="progress"><span style="width: 72%"></span></div>
+                  <div><span>脂肪</span><strong id="fatValue">58g</strong></div>
+                  <div class="progress"><span id="fatProgress" style="width: 72%"></span></div>
                 </div>
                 <div class="nutrient-row">
-                  <div><span>蔬菜</span><strong>420g</strong></div>
-                  <div class="progress green"><span style="width: 88%"></span></div>
+                  <div><span>蔬菜</span><strong id="vegetableValue">420g</strong></div>
+                  <div class="progress green"><span id="vegetableProgress" style="width: 88%"></span></div>
                 </div>
               </div>
             </div>
@@ -580,9 +583,85 @@
       </div>
     </section>
 
+    <div class="modal-backdrop" id="profileModal" aria-hidden="true">
+      <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+        <button class="icon-button modal-close" id="closeProfileModalButton" type="button" aria-label="关闭营养档案" title="关闭">
+          <i data-lucide="x"></i>
+        </button>
+        <div class="profile-modal-heading">
+          <p class="eyebrow">个性化设置</p>
+          <h2 id="profileModalTitle">家庭营养档案</h2>
+          <p>用于计算每日营养目标，并影响菜谱推荐和一周搭配。</p>
+        </div>
+
+        <form class="profile-form" id="profileForm">
+          <label>
+            <span>年龄</span>
+            <input id="profileAge" name="age" type="number" min="16" max="90" value="32" required />
+            <small>岁</small>
+          </label>
+          <label>
+            <span>身高</span>
+            <input id="profileHeight" name="height" type="number" min="120" max="220" value="172" required />
+            <small>厘米</small>
+          </label>
+          <label>
+            <span>体重</span>
+            <input id="profileWeight" name="weight" type="number" min="35" max="200" step="0.1" value="68" required />
+            <small>公斤</small>
+          </label>
+          <label>
+            <span>生理性别</span>
+            <select id="profileGender" name="gender">
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </label>
+          <label>
+            <span>日常活动量</span>
+            <select id="profileActivity" name="activity">
+              <option value="1.2">久坐少动</option>
+              <option value="1.375">轻度活动</option>
+              <option value="1.55" selected>中等活动</option>
+              <option value="1.725">高强度活动</option>
+            </select>
+          </label>
+          <label>
+            <span>当前目标</span>
+            <select id="profileGoal" name="goal">
+              <option value="maintain">维持体重</option>
+              <option value="lose">稳步减脂</option>
+              <option value="gain">增肌增重</option>
+            </select>
+          </label>
+          <label class="profile-checkbox">
+            <input id="profileNoSpicy" name="noSpicy" type="checkbox" />
+            <span>尽量不推荐辣菜</span>
+          </label>
+          <label class="profile-checkbox">
+            <input id="profileHighProtein" name="highProtein" type="checkbox" checked />
+            <span>优先高蛋白</span>
+          </label>
+        </form>
+
+        <div class="profile-target-preview">
+          <div><span>每日目标</span><strong id="profileCaloriePreview">2,300 kcal</strong></div>
+          <p id="profileTargetExplanation">按中等活动量和维持体重估算。</p>
+        </div>
+
+        <div class="profile-actions">
+          <button class="secondary-button dark" id="resetProfileButton" type="button">恢复默认</button>
+          <button class="primary-button" id="saveProfileButton" type="button">
+            <i data-lucide="check"></i>
+            保存营养目标
+          </button>
+        </div>
+      </section>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./data/recipes.js?v=20260929e"></script>
-    <script src="./app.js?v=20260929e"></script>
+    <script src="./data/recipes.js?v=20260929f"></script>
+    <script src="./app.js?v=20260929f"></script>
   </body>
 </html>

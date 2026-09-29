@@ -130,7 +130,7 @@ const recipes = {
   }
 };
 
-const recipeLibrary = [
+const fallbackRecipeLibrary = [
   recipes.braisedPork,
   recipes.mapoTofu,
   recipes.scrambledEgg,
@@ -141,6 +141,10 @@ const recipeLibrary = [
   recipes.eggTart,
   recipes.friedNoodles
 ];
+
+const importedRecipeLibrary = Array.isArray(window.HOWTOCOOK_RECIPES) ? window.HOWTOCOOK_RECIPES : [];
+const recipeLibrary = importedRecipeLibrary.length ? importedRecipeLibrary : fallbackRecipeLibrary;
+const recipeMetadata = window.HOWTOCOOK_META || null;
 
 const pantryOptions = [
   "五花肉",
@@ -264,6 +268,9 @@ let completedCookingSteps = new Set();
 let timerSeconds = 300;
 let timerInterval = null;
 let timerRunning = false;
+let recipeSearchQuery = "";
+let visibleRecipeCount = 24;
+let plannerSearchQuery = "";
 
 function readStoredValue(key, fallback) {
   try {
@@ -314,6 +321,10 @@ const matchTitle = document.querySelector("#matchTitle");
 const matchDescription = document.querySelector("#matchDescription");
 const matchList = document.querySelector("#matchList");
 const recipeGrid = document.querySelector("#recipeGrid");
+const libraryCount = document.querySelector("#libraryCount");
+const recipeSearchInput = document.querySelector("#recipeSearchInput");
+const loadMoreRecipesButton = document.querySelector("#loadMoreRecipesButton");
+const plannerSearchInput = document.querySelector("#plannerSearchInput");
 const weekBoard = document.querySelector("#weekBoard");
 const weekSummaryTitle = document.querySelector("#weekSummaryTitle");
 const weekSummaryCopy = document.querySelector("#weekSummaryCopy");
@@ -560,7 +571,12 @@ function updateMatches() {
     .map((recipe) => {
       const matched = recipe.pantry.filter((item) => selectedPantry.has(item));
       const missing = recipe.pantry.filter((item) => !selectedPantry.has(item));
-      return { recipe, matched, missing, ratio: matched.length / recipe.pantry.length };
+      return {
+        recipe,
+        matched,
+        missing,
+        ratio: recipe.pantry.length ? matched.length / recipe.pantry.length : 0
+      };
     })
     .sort((a, b) => b.ratio - a.ratio || a.missing.length - b.missing.length);
 
@@ -586,9 +602,36 @@ function updateMatches() {
 }
 
 function renderRecipeGrid() {
-  const visibleRecipes = activeRecipeFilter === "全部"
+  const filterMatchedRecipes = activeRecipeFilter === "全部"
     ? recipeLibrary
-    : recipeLibrary.filter((recipe) => recipe.tags.includes(activeRecipeFilter));
+    : recipeLibrary.filter((recipe) =>
+      recipe.category === activeRecipeFilter || recipe.tags.includes(activeRecipeFilter)
+    );
+  const normalizedQuery = recipeSearchQuery.trim().toLowerCase();
+  const matchingRecipes = normalizedQuery
+    ? filterMatchedRecipes.filter((recipe) => {
+      const searchableText = [
+        recipe.name,
+        recipe.category,
+        recipe.description,
+        ...(recipe.tags || []),
+        ...(recipe.ingredients || []),
+        ...(recipe.steps || [])
+      ].join(" ").toLowerCase();
+      return searchableText.includes(normalizedQuery);
+    })
+    : filterMatchedRecipes;
+  const visibleRecipes = matchingRecipes.slice(0, visibleRecipeCount);
+
+  libraryCount.textContent = normalizedQuery || activeRecipeFilter !== "全部"
+    ? `找到 ${matchingRecipes.length} 道菜，当前显示 ${visibleRecipes.length} 道`
+    : `已收录 ${matchingRecipes.length} 道菜，当前显示 ${visibleRecipes.length} 道`;
+
+  if (!visibleRecipes.length) {
+    recipeGrid.innerHTML = '<div class="empty-library">没有找到符合条件的菜谱，换个关键词试试。</div>';
+    loadMoreRecipesButton.hidden = true;
+    return;
+  }
 
   recipeGrid.innerHTML = visibleRecipes.map((recipe) => `
     <article class="recipe-card" data-card-name="${recipe.name}">
@@ -618,6 +661,7 @@ function renderRecipeGrid() {
     </article>
   `).join("");
 
+  loadMoreRecipesButton.hidden = visibleRecipes.length >= matchingRecipes.length;
   refreshIcons();
 }
 
@@ -642,7 +686,8 @@ function aggregateWeekShopping() {
         .split(" · ")
         .filter(Boolean)
         .forEach((name) => {
-          (recipeShopping[name] || []).forEach(([ingredient, amount]) => {
+          const shoppingItems = recipeShopping[name] || findRecipeByName(name)?.shoppingItems || [];
+          shoppingItems.forEach(([ingredient, amount]) => {
             const parsed = parseQuantity(amount);
             const current = totals.get(ingredient) || { ingredient, units: new Map() };
             current.units.set(parsed.unit, (current.units.get(parsed.unit) || 0) + parsed.value);
@@ -721,16 +766,25 @@ function closePlannerPicker() {
   plannerTarget = null;
 }
 
-function openPlannerPicker(dayIndex, slot) {
-  plannerTarget = { dayIndex, slot };
-  const slotLabels = { breakfast: "早餐", lunch: "午餐", dinner: "晚餐" };
-  plannerSlotLabel.textContent = `${weekdays[dayIndex]} · ${slotLabels[slot]}`;
+function renderPlannerOptions() {
+  if (!plannerTarget) return;
+  const normalizedQuery = plannerSearchQuery.trim().toLowerCase();
+  const matchingRecipes = normalizedQuery
+    ? recipeLibrary.filter((recipe) =>
+      `${recipe.name} ${recipe.category} ${recipe.tags.join(" ")} ${recipe.ingredients.join(" ")}`
+        .toLowerCase()
+        .includes(normalizedQuery)
+    )
+    : recipeLibrary;
+  const visibleRecipes = matchingRecipes.slice(0, 80);
 
-  plannerRecipeList.innerHTML = recipeLibrary.map((recipe) => {
-    const isCurrent = String(weekPlan[dayIndex][slot] || "").includes(recipe.name);
+  plannerRecipeList.innerHTML = visibleRecipes.map((recipe) => {
+    const isCurrent = String(
+      weekPlan[plannerTarget.dayIndex][plannerTarget.slot] || ""
+    ).includes(recipe.name);
     return `
       <button class="planner-recipe-option" type="button" data-planner-recipe="${recipe.name}">
-        <img src="${recipe.image}" alt="" />
+        <img src="${recipe.image}" alt="" loading="lazy" />
         <span>
           <strong>${recipe.name}</strong>
           <small>${recipe.time} · ${recipe.difficulty} · ${recipe.tags.join(" / ")}</small>
@@ -738,7 +792,22 @@ function openPlannerPicker(dayIndex, slot) {
         <i data-lucide="${isCurrent ? "check-circle-2" : "plus-circle"}"></i>
       </button>
     `;
-  }).join("");
+  }).join("") + (
+    matchingRecipes.length > visibleRecipes.length
+      ? `<p class="planner-limit">还有 ${matchingRecipes.length - visibleRecipes.length} 道菜，请用搜索继续查找。</p>`
+      : ""
+  );
+
+  refreshIcons();
+}
+
+function openPlannerPicker(dayIndex, slot) {
+  plannerTarget = { dayIndex, slot };
+  plannerSearchQuery = "";
+  plannerSearchInput.value = "";
+  const slotLabels = { breakfast: "早餐", lunch: "午餐", dinner: "晚餐" };
+  plannerSlotLabel.textContent = `${weekdays[dayIndex]} · ${slotLabels[slot]}`;
+  renderPlannerOptions();
 
   plannerModal.classList.add("is-open");
   plannerModal.setAttribute("aria-hidden", "false");
@@ -904,9 +973,21 @@ document.querySelector("#libraryFilters").addEventListener("click", (event) => {
   if (!button) return;
 
   activeRecipeFilter = button.dataset.filter;
+  visibleRecipeCount = 24;
   document.querySelectorAll("#libraryFilters .filter-button").forEach((item) => {
     item.classList.toggle("is-active", item === button);
   });
+  renderRecipeGrid();
+});
+
+recipeSearchInput.addEventListener("input", () => {
+  recipeSearchQuery = recipeSearchInput.value;
+  visibleRecipeCount = 24;
+  renderRecipeGrid();
+});
+
+loadMoreRecipesButton.addEventListener("click", () => {
+  visibleRecipeCount += 24;
   renderRecipeGrid();
 });
 
@@ -944,6 +1025,10 @@ plannerRecipeList.addEventListener("click", (event) => {
 document.querySelector("#autoPlanButton").addEventListener("click", autoPlanWeek);
 document.querySelector("#useWeekShoppingButton").addEventListener("click", updateTodayShoppingFromWeek);
 document.querySelector("#closePlannerModalButton").addEventListener("click", closePlannerPicker);
+plannerSearchInput.addEventListener("input", () => {
+  plannerSearchQuery = plannerSearchInput.value;
+  renderPlannerOptions();
+});
 
 plannerModal.addEventListener("click", (event) => {
   if (event.target === plannerModal) closePlannerPicker();

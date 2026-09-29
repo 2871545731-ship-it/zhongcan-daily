@@ -26,7 +26,7 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260929c" />
+    <link rel="stylesheet" href="./styles.css?v=20260929d" />
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   </head>
   <body>
@@ -367,15 +367,34 @@
             <div>
               <p class="eyebrow">家常菜库</p>
               <h2 id="libraryTitle">这些菜，今天都能安排</h2>
-            </div>
-            <div class="library-filters" id="libraryFilters" role="group" aria-label="菜谱筛选">
-              <button class="filter-button is-active" type="button" data-filter="全部">全部</button>
-              <button class="filter-button" type="button" data-filter="快手">快手</button>
-              <button class="filter-button" type="button" data-filter="下饭">下饭</button>
-              <button class="filter-button" type="button" data-filter="清淡">清淡</button>
+              <p class="library-count" id="libraryCount">正在载入完整菜谱库…</p>
             </div>
           </div>
+          <label class="recipe-search">
+            <i data-lucide="search"></i>
+            <input id="recipeSearchInput" type="search" placeholder="搜索菜名、食材或做法" />
+          </label>
+          <div class="library-filters" id="libraryFilters" role="group" aria-label="菜谱筛选">
+            <button class="filter-button is-active" type="button" data-filter="全部">全部</button>
+            <button class="filter-button" type="button" data-filter="荤菜">荤菜</button>
+            <button class="filter-button" type="button" data-filter="素菜">素菜</button>
+            <button class="filter-button" type="button" data-filter="水产">水产</button>
+            <button class="filter-button" type="button" data-filter="主食">主食</button>
+            <button class="filter-button" type="button" data-filter="早餐">早餐</button>
+            <button class="filter-button" type="button" data-filter="汤羹">汤羹</button>
+            <button class="filter-button" type="button" data-filter="甜品">甜品</button>
+            <button class="filter-button" type="button" data-filter="饮品">饮品</button>
+            <button class="filter-button" type="button" data-filter="快手">快手</button>
+            <button class="filter-button" type="button" data-filter="清淡">清淡</button>
+            <button class="filter-button" type="button" data-filter="高蛋白">高蛋白</button>
+          </div>
           <div class="recipe-grid" id="recipeGrid"></div>
+          <div class="load-more-wrap">
+            <button class="secondary-button load-more-button" id="loadMoreRecipesButton" type="button" hidden>
+              加载更多
+              <i data-lucide="chevron-down"></i>
+            </button>
+          </div>
         </section>
 
         <section class="section" id="preferences" aria-labelledby="preferenceTitle">
@@ -476,6 +495,10 @@
           <h2 id="plannerModalTitle">给这一餐选一道菜</h2>
           <p>点击菜谱即可替换当前安排。</p>
         </div>
+        <label class="recipe-search planner-search">
+          <i data-lucide="search"></i>
+          <input id="plannerSearchInput" type="search" placeholder="搜索 372 道家常菜" />
+        </label>
         <div class="planner-recipe-list" id="plannerRecipeList"></div>
       </section>
     </div>
@@ -559,6 +582,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="./app.js?v=20260929c"></script>
+    <script src="./data/recipes.js?v=20260929d"></script>
+    <script src="./app.js?v=20260929d"></script>
   </body>
 </html>

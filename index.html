@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f7f4" />
+    <meta
+      name="description"
+      content="面向中餐家常菜的每日食谱、七日计划、冰箱选菜、采购清单和烹饪模式。"
+    />
+    <meta name="application-name" content="今天吃什么" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="今天吃什么" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="今天吃什么 · 中餐家常菜" />
+    <meta
+      property="og:description"
+      content="每天推荐中餐家常菜，并自动生成采购清单和烹饪步骤。"
+    />
+    <meta
+      property="og:image"
+      content="https://howtocook.aiursoft.com/download/recipe-images/60e5dd35a11f4888929653094b5af220.jpg?w=1200"
+    />
+    <title>今天吃什么 · 中餐家常菜</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <a class="brand" href="#today" aria-label="返回今日首页">
+          <span class="brand-mark">食</span>
+          <span>
+            <strong>今天吃什么</strong>
+            <small>中餐家常菜</small>
+          </span>
+        </a>
+
+        <nav class="nav-list">
+          <a class="nav-item is-active" href="#today">
+            <i data-lucide="house"></i>
+            <span>今日</span>
+          </a>
+          <a class="nav-item" href="#week">
+            <i data-lucide="calendar-days"></i>
+            <span>一周</span>
+          </a>
+          <a class="nav-item" href="#recipes">
+            <i data-lucide="book-open"></i>
+            <span>菜谱</span>
+          </a>
+          <a class="nav-item" href="#shopping">
+            <i data-lucide="shopping-basket"></i>
+            <span>采购</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-note">
+          <div class="sidebar-note-copy">
+            <span class="note-dot"></span>
+            <p>内容来自 HowToCook 开源菜谱库</p>
+          </div>
+          <button class="install-button" id="installAppButton" type="button" hidden>
+            <i data-lucide="download"></i>
+            安装到桌面
+          </button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="todayLabel">9 月 29 日 · 周二</p>
+            <h1>今晚吃什么</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" type="button" aria-label="搜索菜谱" title="搜索菜谱">
+              <i data-lucide="search"></i>
+            </button>
+            <div class="serving-control" aria-label="调整用餐人数">
+              <button class="serving-button" id="decreaseServingButton" type="button" aria-label="减少一人" title="减少一人">
+                <i data-lucide="minus"></i>
+              </button>
+              <div class="serving-copy">
+                <strong><span id="servingCount">2</span> 人份</strong>
+                <small>晚餐用量</small>
+              </div>
+              <button class="serving-button" id="increaseServingButton" type="button" aria-label="增加一人" title="增加一人">
+                <i data-lucide="plus"></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <section class="hero" id="today" aria-labelledby="dinnerTitle">
+          <div class="hero-media">
+            <img id="heroImage" src="" alt="" />
+            <div class="hero-media-shade"></div>
+            <div class="hero-badge">
+              <i data-lucide="sparkles"></i>
+              <span>今日推荐</span>
+            </div>
+          </div>
+
+          <div class="hero-content">
+            <div class="hero-kicker">
+              <span id="planMood">清爽下饭</span>
+              <span class="dot-separator"></span>
+              <span id="planTime">45 分钟</span>
+            </div>
+            <h2 id="dinnerTitle">两荤一素，家常但不将就</h2>
+            <p id="planDescription">
+              红烧肉配乾隆白菜和鸡蛋羹，口味有浓有淡，做饭时间可以并行安排。
+            </p>
+
+            <div class="hero-tags" id="planTags" aria-label="菜单标签"></div>
+
+            <div class="hero-actions">
+              <button class="primary-button" id="cookPlanButton" type="button">
+                <i data-lucide="cooking-pot"></i>
+                就做这一桌
+              </button>
+              <button class="secondary-button" id="swapPlanButton" type="button">
+                <i data-lucide="refresh-cw"></i>
+                换一桌
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="week" aria-labelledby="todayMenuTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">今日菜单</p>
+              <h2 id="todayMenuTitle">三餐这样安排</h2>
+            </div>
+            <button class="text-button" id="autoPlanButton" type="button">
+              自动排一周
+              <i data-lucide="wand-sparkles"></i>
+            </button>
+          </div>
+
+          <div class="meal-list">
+            <article class="meal-row">
+              <div class="meal-time">
+                <span class="meal-icon breakfast"><i data-lucide="sunrise"></i></span>
+                <div>
+                  <strong>早餐</strong>
+                  <small>7:30</small>
+                </div>
+              </div>
+              <div class="meal-main">
+                <div>
+                  <h3>小米南瓜粥 · 水煮蛋 · 凉拌黄瓜</h3>
+                  <p>清淡、暖胃，准备时间约 20 分钟。</p>
+                </div>
+                <div class="meal-meta">
+                  <span>420 kcal</span>
+                  <span>20 分钟</span>
+                </div>
+              </div>
+              <button class="icon-button meal-action" type="button" aria-label="替换早餐" title="替换早餐">
+                <i data-lucide="repeat-2"></i>
+              </button>
+            </article>
+
+            <article class="meal-row">
+              <div class="meal-time">
+                <span class="meal-icon lunch"><i data-lucide="sun"></i></span>
+                <div>
+                  <strong>午餐</strong>
+                  <small>12:00</small>
+                </div>
+              </div>
+              <div class="meal-main">
+                <div>
+                  <h3>番茄鸡蛋盖饭 · 蒜蓉青菜</h3>
+                  <p>一锅完成，适合工作日带饭。</p>
+                </div>
+                <div class="meal-meta">
+                  <span>610 kcal</span>
+                  <span>25 分钟</span>
+                </div>
+              </div>
+              <button class="icon-button meal-action" type="button" aria-label="替换午餐" title="替换午餐">
+                <i data-lucide="repeat-2"></i>
+              </button>
+            </article>
+
+            <article class="meal-row is-featured">
+              <div class="meal-time">
+                <span class="meal-icon dinner"><i data-lucide="moon-star"></i></span>
+                <div>
+                  <strong>晚餐</strong>
+                  <small>18:30</small>
+                </div>
+              </div>
+              <div class="meal-main">
+                <div>
+                  <h3 id="dinnerMenuTitle">红烧肉 · 乾隆白菜 · 鸡蛋羹</h3>
+                  <p id="dinnerMenuDescription">浓淡搭配，适合家人一起吃。</p>
+                </div>
+                <div class="meal-meta">
+                  <span id="dinnerCalories">860 kcal</span>
+                  <span id="dinnerDuration">45 分钟</span>
+                </div>
+              </div>
+              <button class="icon-button meal-action" type="button" aria-label="打开晚餐详情" title="打开晚餐详情" id="openDinnerButton">
+                <i data-lucide="chevron-right"></i>
+              </button>
+            </article>
+          </div>
+
+          <div class="week-planner">
+            <div class="week-board" id="weekBoard"></div>
+            <aside class="week-summary" aria-labelledby="weekSummaryTitle">
+              <p class="eyebrow">整周采购</p>
+              <h3 id="weekSummaryTitle">本周需要 18 样</h3>
+              <p id="weekSummaryCopy">菜单变化后自动合并同类食材。</p>
+              <div class="week-shopping-preview" id="weekShoppingPreview"></div>
+              <button class="primary-button week-shopping-button" id="useWeekShoppingButton" type="button">
+                <i data-lucide="clipboard-check"></i>
+                更新今日采购
+              </button>
+            </aside>
+          </div>
+        </section>
+
+        <section class="section pantry-panel" id="pantry" aria-labelledby="pantryTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">冰箱选菜</p>
+              <h2 id="pantryTitle">冰箱里有什么，就先做什么</h2>
+            </div>
+            <button class="text-button" id="clearPantryButton" type="button">
+              清空
+              <i data-lucide="eraser"></i>
+            </button>
+          </div>
+
+          <div class="pantry-layout">
+            <div>
+              <p class="helper-copy">点选现有食材，推荐会优先找出“现在就能做”的家常菜。</p>
+              <div class="pantry-chips" id="pantryChips" role="group" aria-label="冰箱现有食材"></div>
+            </div>
+
+            <div class="match-panel">
+              <div class="match-summary">
+                <div class="match-ring">
+                  <strong id="matchPercent">0%</strong>
+                  <span>匹配度</span>
+                </div>
+                <div>
+                  <span class="match-label">当前最合适</span>
+                  <h3 id="matchTitle">先选择冰箱里的食材</h3>
+                  <p id="matchDescription">选中后，这里会按缺少食材数量和烹饪时间排序。</p>
+                </div>
+              </div>
+              <div class="match-list" id="matchList"></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <section class="section nutrition-panel" aria-labelledby="nutritionTitle">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">今日营养</p>
+                <h2 id="nutritionTitle">吃得舒服，也吃得均衡</h2>
+              </div>
+              <span class="status-pill">达标</span>
+            </div>
+
+            <div class="nutrition-summary">
+              <div class="calorie-ring" aria-label="今日热量达标 82%">
+                <svg viewBox="0 0 120 120" role="img">
+                  <circle class="ring-track" cx="60" cy="60" r="50"></circle>
+                  <circle class="ring-value" cx="60" cy="60" r="50"></circle>
+                </svg>
+                <div class="ring-copy">
+                  <strong>82%</strong>
+                  <span>1,890 / 2,300</span>
+                  <small>千卡</small>
+                </div>
+              </div>
+
+              <div class="nutrient-list">
+                <div class="nutrient-row">
+                  <div><span>蛋白质</span><strong>92g</strong></div>
+                  <div class="progress"><span style="width: 84%"></span></div>
+                </div>
+                <div class="nutrient-row">
+                  <div><span>碳水</span><strong>218g</strong></div>
+                  <div class="progress"><span style="width: 76%"></span></div>
+                </div>
+                <div class="nutrient-row">
+                  <div><span>脂肪</span><strong>58g</strong></div>
+                  <div class="progress"><span style="width: 72%"></span></div>
+                </div>
+                <div class="nutrient-row">
+                  <div><span>蔬菜</span><strong>420g</strong></div>
+                  <div class="progress green"><span style="width: 88%"></span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section shopping-panel" id="shopping" aria-labelledby="shoppingTitle">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">采购清单</p>
+                <h2 id="shoppingTitle">还差 6 样</h2>
+              </div>
+              <button class="text-button" id="generateListButton" type="button">
+                更新清单
+                <i data-lucide="list-plus"></i>
+              </button>
+            </div>
+
+            <div class="shopping-list">
+              <label class="shopping-item">
+                <input type="checkbox" />
+                <span class="checkmark"><i data-lucide="check"></i></span>
+                <span class="item-name">五花肉</span>
+                <span class="item-amount">800g</span>
+              </label>
+              <label class="shopping-item">
+                <input type="checkbox" />
+                <span class="checkmark"><i data-lucide="check"></i></span>
+                <span class="item-name">大白菜</span>
+                <span class="item-amount">1 颗</span>
+              </label>
+              <label class="shopping-item">
+                <input type="checkbox" />
+                <span class="checkmark"><i data-lucide="check"></i></span>
+                <span class="item-name">鸡蛋</span>
+                <span class="item-amount">8 枚</span>
+              </label>
+              <label class="shopping-item">
+                <input type="checkbox" />
+                <span class="checkmark"><i data-lucide="check"></i></span>
+                <span class="item-name">小葱</span>
+                <span class="item-amount">1 把</span>
+              </label>
+              <label class="shopping-item">
+                <input type="checkbox" />
+                <span class="checkmark"><i data-lucide="check"></i></span>
+                <span class="item-name">生姜</span>
+                <span class="item-amount">1 块</span>
+              </label>
+              <label class="shopping-item">
+                <input type="checkbox" />
+                <span class="checkmark"><i data-lucide="check"></i></span>
+                <span class="item-name">芝麻酱</span>
+                <span class="item-amount">1 瓶</span>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <section class="section" id="recipes" aria-labelledby="libraryTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">家常菜库</p>
+              <h2 id="libraryTitle">这些菜，今天都能安排</h2>
+            </div>
+            <div class="library-filters" id="libraryFilters" role="group" aria-label="菜谱筛选">
+              <button class="filter-button is-active" type="button" data-filter="全部">全部</button>
+              <button class="filter-button" type="button" data-filter="快手">快手</button>
+              <button class="filter-button" type="button" data-filter="下饭">下饭</button>
+              <button class="filter-button" type="button" data-filter="清淡">清淡</button>
+            </div>
+          </div>
+          <div class="recipe-grid" id="recipeGrid"></div>
+        </section>
+
+        <section class="section" id="preferences" aria-labelledby="preferenceTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">推荐偏好</p>
+              <h2 id="preferenceTitle">今天想怎么吃</h2>
+            </div>
+            <button class="text-button" type="button" data-toast="偏好已保存，推荐会随下一餐更新">
+              保存偏好
+              <i data-lucide="check"></i>
+            </button>
+          </div>
+
+          <div class="preference-list" role="group" aria-label="推荐偏好">
+            <button class="preference-chip is-active" type="button">
+              <i data-lucide="timer"></i>
+              45 分钟内
+            </button>
+            <button class="preference-chip is-active" type="button">
+              <i data-lucide="leaf"></i>
+              有荤有素
+            </button>
+            <button class="preference-chip" type="button">
+              <i data-lucide="flame"></i>
+              少辣
+            </button>
+            <button class="preference-chip" type="button">
+              <i data-lucide="dumbbell"></i>
+              高蛋白
+            </button>
+            <button class="preference-chip" type="button">
+              <i data-lucide="wallet-cards"></i>
+              控制预算
+            </button>
+            <button class="preference-chip" type="button">
+              <i data-lucide="snowflake"></i>
+              冰箱优先
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <nav class="mobile-nav" aria-label="移动端主导航">
+      <a class="is-active" href="#today"><i data-lucide="house"></i><span>今日</span></a>
+      <a href="#week"><i data-lucide="calendar-days"></i><span>一周</span></a>
+      <a href="#recipes"><i data-lucide="book-open"></i><span>菜谱</span></a>
+      <a href="#shopping"><i data-lucide="shopping-basket"></i><span>采购</span></a>
+    </nav>
+
+    <div class="modal-backdrop" id="recipeModal" aria-hidden="true">
+      <section class="recipe-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="icon-button modal-close" id="closeModalButton" type="button" aria-label="关闭菜谱详情" title="关闭">
+          <i data-lucide="x"></i>
+        </button>
+        <div class="modal-cover">
+          <img id="modalImage" src="" alt="" />
+        </div>
+        <div class="modal-content">
+          <p class="eyebrow" id="modalCategory">今晚主菜</p>
+          <h2 id="modalTitle">红烧肉</h2>
+          <p id="modalDescription"></p>
+          <div class="modal-stats">
+            <span><i data-lucide="clock-3"></i><strong id="modalTime"></strong></span>
+            <span><i data-lucide="flame"></i><strong id="modalCalories"></strong></span>
+            <span><i data-lucide="chef-hat"></i><strong id="modalDifficulty"></strong></span>
+          </div>
+          <button class="primary-button cook-start-button" id="startCookingButton" type="button">
+            <i data-lucide="play"></i>
+            开始做饭
+          </button>
+          <div class="modal-columns">
+            <div>
+              <h3>主要食材</h3>
+              <ul id="modalIngredients"></ul>
+            </div>
+            <div>
+              <h3>做法要点</h3>
+              <ol id="modalSteps"></ol>
+            </div>
+          </div>
+          <a class="source-link" id="modalSource" href="https://github.com/Anduin2017/HowToCook" target="_blank" rel="noreferrer">
+            查看 HowToCook 原始菜谱
+            <i data-lucide="external-link"></i>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="plannerModal" aria-hidden="true">
+      <section class="planner-modal" role="dialog" aria-modal="true" aria-labelledby="plannerModalTitle">
+        <button class="icon-button modal-close" id="closePlannerModalButton" type="button" aria-label="关闭选菜面板" title="关闭">
+          <i data-lucide="x"></i>
+        </button>
+        <div class="planner-modal-heading">
+          <p class="eyebrow" id="plannerSlotLabel">周三 · 晚餐</p>
+          <h2 id="plannerModalTitle">给这一餐选一道菜</h2>
+          <p>点击菜谱即可替换当前安排。</p>
+        </div>
+        <div class="planner-recipe-list" id="plannerRecipeList"></div>
+      </section>
+    </div>
+
+    <section class="cooking-mode" id="cookingMode" aria-hidden="true" aria-labelledby="cookingRecipeTitle">
+      <header class="cooking-header">
+        <button class="cooking-back-button" id="closeCookingButton" type="button">
+          <i data-lucide="chevron-left"></i>
+          退出做饭
+        </button>
+        <div class="cooking-title">
+          <span class="eyebrow">正在烹饪</span>
+          <h2 id="cookingRecipeTitle">红烧肉</h2>
+        </div>
+        <div class="cooking-progress-copy">
+          <strong id="cookingProgressText">1 / 4</strong>
+          <span>步骤进度</span>
+        </div>
+      </header>
+
+      <div class="cooking-progress-track" aria-hidden="true">
+        <span id="cookingProgressBar"></span>
+      </div>
+
+      <div class="cooking-layout">
+        <aside class="cooking-ingredients">
+          <p class="eyebrow">备菜清单</p>
+          <h3>开始前先确认</h3>
+          <div id="cookingIngredientList" class="cooking-ingredient-list"></div>
+        </aside>
+
+        <main class="cooking-step-area">
+          <div class="cooking-step-image">
+            <img id="cookingRecipeImage" src="" alt="" />
+            <div class="cooking-step-count">
+              <span id="cookingStepIndex">步骤 1</span>
+            </div>
+          </div>
+          <div class="cooking-step-content">
+            <p class="eyebrow" id="cookingStepHint">第一步</p>
+            <h3 id="cookingStepText">准备食材</h3>
+            <p>按当前步骤操作，完成后进入下一步。计时器可独立使用。</p>
+            <div class="cooking-step-actions">
+              <button class="secondary-button dark" id="previousStepButton" type="button">
+                <i data-lucide="arrow-left"></i>
+                上一步
+              </button>
+              <button class="primary-button" id="completeStepButton" type="button">
+                完成这一步
+                <i data-lucide="check"></i>
+              </button>
+              <button class="secondary-button dark" id="nextStepButton" type="button">
+                下一步
+                <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <aside class="cooking-timer">
+          <p class="eyebrow">烹饪计时</p>
+          <div class="timer-display" id="timerDisplay">05:00</div>
+          <div class="timer-presets" role="group" aria-label="计时器预设">
+            <button type="button" data-timer-minutes="3">3 分</button>
+            <button type="button" data-timer-minutes="5" class="is-active">5 分</button>
+            <button type="button" data-timer-minutes="10">10 分</button>
+            <button type="button" data-timer-minutes="20">20 分</button>
+          </div>
+          <div class="timer-actions">
+            <button class="primary-button" id="toggleTimerButton" type="button">
+              <i data-lucide="play"></i>
+              开始计时
+            </button>
+            <button class="icon-button" id="resetTimerButton" type="button" aria-label="重置计时器" title="重置计时器">
+              <i data-lucide="rotate-ccw"></i>
+            </button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -272,6 +272,20 @@ let recipeSearchQuery = "";
 let visibleRecipeCount = 24;
 let plannerSearchQuery = "";
 
+const defaultNutritionProfile = {
+  age: 32,
+  height: 172,
+  weight: 68,
+  gender: "male",
+  activity: 1.55,
+  goal: "maintain",
+  noSpicy: false,
+  highProtein: true
+};
+
+let nutritionProfile = defaultNutritionProfile;
+let dailyNutritionTargets = null;
+
 function readStoredValue(key, fallback) {
   try {
     const value = window.localStorage.getItem(key);
@@ -294,11 +308,158 @@ selectedPantry = new Set(readStoredValue("meal-pantry-items", []));
 favoriteRecipes = new Set(readStoredValue("meal-favorite-recipes", []));
 weekPlan = readStoredValue("meal-week-plan", []);
 if (!Array.isArray(weekPlan) || weekPlan.length !== 7) weekPlan = createInitialWeek();
+nutritionProfile = { ...defaultNutritionProfile, ...readStoredValue("meal-nutrition-profile", {}) };
+dailyNutritionTargets = calculateNutritionTargets(nutritionProfile);
 
 function refreshIcons() {
   if (window.lucide && typeof window.lucide.createIcons === "function") {
     window.lucide.createIcons();
   }
+}
+
+function calculateNutritionTargets(profile) {
+  const age = Number(profile.age) || defaultNutritionProfile.age;
+  const height = Number(profile.height) || defaultNutritionProfile.height;
+  const weight = Number(profile.weight) || defaultNutritionProfile.weight;
+  const genderOffset = profile.gender === "female" ? -161 : 5;
+  const baseMetabolicRate = 10 * weight + 6.25 * height - 5 * age + genderOffset;
+  const maintenanceCalories = baseMetabolicRate * (Number(profile.activity) || defaultNutritionProfile.activity);
+  const goalAdjustment = profile.goal === "lose" ? -400 : profile.goal === "gain" ? 300 : 0;
+  const calories = Math.max(1200, Math.round((maintenanceCalories + goalAdjustment) / 10) * 10);
+  const proteinFactor = profile.goal === "lose" ? 1.6 : profile.goal === "gain" ? 1.8 : 1.25;
+  const protein = Math.round(weight * (proteinFactor + (profile.highProtein ? 0.2 : 0)));
+  const fat = Math.round((calories * 0.27) / 9);
+  const carbs = Math.round((calories - protein * 4 - fat * 9) / 4);
+  const vegetables = profile.goal === "lose" ? 550 : 500;
+
+  return {
+    calories,
+    maintenanceCalories: Math.round(maintenanceCalories),
+    protein,
+    carbs: Math.max(80, carbs),
+    fat,
+    vegetables
+  };
+}
+
+function estimateTodayNutrition() {
+  const today = dateKey(new Date());
+  const todayPlan = weekPlan.find((day) => day.date === today) || weekPlan[0];
+  if (!todayPlan) {
+    return { calories: 1890, protein: 94, carbs: 218, fat: 58, vegetables: 420 };
+  }
+
+  const names = ["breakfast", "lunch", "dinner"]
+    .flatMap((slot) => String(todayPlan[slot] || "").split(" · "))
+    .filter(Boolean);
+  const matchedRecipes = names.map((name) => findRecipeByName(name)).filter(Boolean);
+  const fallbackCalories = { breakfast: 420, lunch: 610, dinner: 860 };
+  const calories = matchedRecipes.reduce(
+    (total, recipe) => total + (recipe.caloriesValue || 0),
+    0
+  ) || Object.values(fallbackCalories).reduce((total, value) => total + value, 0);
+  const vegetableDishes = matchedRecipes.filter((recipe) =>
+    ["蔬菜", "素菜", "汤羹"].includes(recipe.category) ||
+    recipe.tags?.includes("清淡")
+  ).length;
+
+  return {
+    calories,
+    protein: Math.round((calories * 0.2) / 4),
+    carbs: Math.round((calories * 0.45) / 4),
+    fat: Math.round((calories * 0.35) / 9),
+    vegetables: Math.max(250, vegetableDishes * 160)
+  };
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("zh-CN").format(Math.round(value));
+}
+
+function updateNutritionDashboard() {
+  if (!dailyNutritionTargets) return;
+
+  const actual = estimateTodayNutrition();
+  const calorieRatio = actual.calories / dailyNutritionTargets.calories;
+  const displayPercent = Math.round(calorieRatio * 100);
+  const ringOffset = 314 * (1 - Math.min(calorieRatio, 1));
+  document.querySelector(".ring-value").style.strokeDashoffset = ringOffset;
+  caloriePercent.textContent = `${displayPercent}%`;
+  calorieProgress.textContent = `${formatNumber(actual.calories)} / ${formatNumber(dailyNutritionTargets.calories)}`;
+
+  const nutrientRows = [
+    [actual.protein, dailyNutritionTargets.protein, proteinValue, proteinProgress, "g"],
+    [actual.carbs, dailyNutritionTargets.carbs, carbValue, carbProgress, "g"],
+    [actual.fat, dailyNutritionTargets.fat, fatValue, fatProgress, "g"],
+    [actual.vegetables, dailyNutritionTargets.vegetables, vegetableValue, vegetableProgress, "g"]
+  ];
+  nutrientRows.forEach(([value, target, valueElement, progressElement, unit]) => {
+    valueElement.textContent = `${Math.round(value)} / ${Math.round(target)}${unit}`;
+    progressElement.style.width = `${Math.min(100, Math.round((value / target) * 100))}%`;
+  });
+
+  const status = document.querySelector(".status-pill");
+  if (displayPercent < 85) {
+    status.textContent = "偏少";
+    status.style.color = "#9a6726";
+    status.style.background = "#f8eed9";
+  } else if (displayPercent > 112) {
+    status.textContent = "偏高";
+    status.style.color = "#9d3f32";
+    status.style.background = "#f8e3df";
+  } else {
+    status.textContent = "合适";
+    status.style.color = "var(--green)";
+    status.style.background = "var(--green-soft)";
+  }
+}
+
+function loadProfileForm(profile = nutritionProfile) {
+  document.querySelector("#profileAge").value = profile.age;
+  document.querySelector("#profileHeight").value = profile.height;
+  document.querySelector("#profileWeight").value = profile.weight;
+  document.querySelector("#profileGender").value = profile.gender;
+  document.querySelector("#profileActivity").value = String(profile.activity);
+  document.querySelector("#profileGoal").value = profile.goal;
+  document.querySelector("#profileNoSpicy").checked = profile.noSpicy;
+  document.querySelector("#profileHighProtein").checked = profile.highProtein;
+  updateProfilePreview();
+}
+
+function readProfileForm() {
+  return {
+    age: Number(document.querySelector("#profileAge").value),
+    height: Number(document.querySelector("#profileHeight").value),
+    weight: Number(document.querySelector("#profileWeight").value),
+    gender: document.querySelector("#profileGender").value,
+    activity: Number(document.querySelector("#profileActivity").value),
+    goal: document.querySelector("#profileGoal").value,
+    noSpicy: document.querySelector("#profileNoSpicy").checked,
+    highProtein: document.querySelector("#profileHighProtein").checked
+  };
+}
+
+function updateProfilePreview() {
+  const previewProfile = readProfileForm();
+  const targets = calculateNutritionTargets(previewProfile);
+  profileCaloriePreview.textContent = `${formatNumber(targets.calories)} kcal`;
+  const goalLabels = { maintain: "维持体重", lose: "稳步减脂", gain: "增肌增重" };
+  profileTargetExplanation.textContent =
+    `按${goalLabels[previewProfile.goal]}估算，维持热量约 ${formatNumber(targets.maintenanceCalories)} kcal，` +
+    `蛋白质 ${targets.protein}g。`;
+}
+
+function openProfileModal() {
+  loadProfileForm();
+  profileModal.classList.add("is-open");
+  profileModal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function closeProfileModal() {
+  profileModal.classList.remove("is-open");
+  profileModal.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
 }
 
 const heroImage = document.querySelector("#heroImage");
@@ -346,6 +507,20 @@ const nextStepButton = document.querySelector("#nextStepButton");
 const completeStepButton = document.querySelector("#completeStepButton");
 const timerDisplay = document.querySelector("#timerDisplay");
 const toggleTimerButton = document.querySelector("#toggleTimerButton");
+const profileModal = document.querySelector("#profileModal");
+const profileForm = document.querySelector("#profileForm");
+const caloriePercent = document.querySelector("#caloriePercent");
+const calorieProgress = document.querySelector("#calorieProgress");
+const proteinValue = document.querySelector("#proteinValue");
+const proteinProgress = document.querySelector("#proteinProgress");
+const carbValue = document.querySelector("#carbValue");
+const carbProgress = document.querySelector("#carbProgress");
+const fatValue = document.querySelector("#fatValue");
+const fatProgress = document.querySelector("#fatProgress");
+const vegetableValue = document.querySelector("#vegetableValue");
+const vegetableProgress = document.querySelector("#vegetableProgress");
+const profileCaloriePreview = document.querySelector("#profileCaloriePreview");
+const profileTargetExplanation = document.querySelector("#profileTargetExplanation");
 
 function scaleAmount(amount, servings) {
   const match = amount.match(/^(\d+(?:\.\d+)?)(.*)$/);
@@ -551,12 +726,44 @@ function renderPantry() {
   updateMatches();
 }
 
+function personalizedRecipeScore(recipe) {
+  const activePreferences = new Set(
+    [...document.querySelectorAll(".preference-chip.is-active")].map((button) => button.textContent.trim())
+  );
+  const tags = recipe.tags || [];
+  let score = 0;
+
+  if (nutritionProfile.noSpicy && (tags.includes("微辣") || tags.includes("重口味") || recipe.name.includes("辣"))) {
+    score -= 35;
+  }
+  if (nutritionProfile.highProtein && tags.includes("高蛋白")) score += 8;
+  if (activePreferences.has("45 分钟内") && recipe.timeMinutes <= 45) score += 5;
+  if (activePreferences.has("有荤有素") && ["荤菜", "素菜", "水产"].includes(recipe.category)) score += 3;
+  if (activePreferences.has("少辣") && !tags.includes("微辣") && !tags.includes("重口味")) score += 4;
+  if (activePreferences.has("高蛋白") && tags.includes("高蛋白")) score += 6;
+  if (activePreferences.has("控制预算") && recipe.difficultyValue <= 3) score += 2;
+  if (activePreferences.has("冰箱优先") && selectedPantry.size) {
+    score += recipe.pantry.filter((item) => selectedPantry.has(item)).length * 2;
+  }
+
+  const dinnerBudget = dailyNutritionTargets.calories * 0.34;
+  if (nutritionProfile.goal === "lose") {
+    score += recipe.caloriesValue && recipe.caloriesValue <= dinnerBudget ? 6 : -4;
+  } else if (nutritionProfile.goal === "gain") {
+    score += recipe.caloriesValue && recipe.caloriesValue >= dinnerBudget * 0.75 ? 4 : 0;
+  }
+  return score;
+}
+
 function updateMatches() {
   if (!selectedPantry.size) {
     matchPercent.textContent = "0%";
     matchTitle.textContent = "先选择冰箱里的食材";
     matchDescription.textContent = "选中后，这里会按缺少食材数量和烹饪时间排序。";
-    matchList.innerHTML = recipeLibrary.slice(0, 3).map((recipe) => `
+    matchList.innerHTML = [...recipeLibrary]
+      .sort((a, b) => personalizedRecipeScore(b) - personalizedRecipeScore(a))
+      .slice(0, 3)
+      .map((recipe) => `
       <button class="match-item" type="button" data-recipe="${recipe.name}">
         <img src="${recipe.image}" alt="" />
         <span><strong>${recipe.name}</strong><small>${recipe.time} · ${recipe.difficulty}</small></span>
@@ -575,10 +782,13 @@ function updateMatches() {
         recipe,
         matched,
         missing,
-        ratio: recipe.pantry.length ? matched.length / recipe.pantry.length : 0
+        ratio: recipe.pantry.length ? matched.length / recipe.pantry.length : 0,
+        score: (recipe.pantry.length ? matched.length / recipe.pantry.length : 0) * 100 +
+          personalizedRecipeScore(recipe) -
+          missing.length * 2
       };
     })
-    .sort((a, b) => b.ratio - a.ratio || a.missing.length - b.missing.length);
+    .sort((a, b) => b.score - a.score || a.missing.length - b.missing.length);
 
   const best = ranked[0];
   const percent = Math.round(best.ratio * 100);
@@ -756,6 +966,7 @@ function renderWeekPlan() {
   }).join("");
 
   updateWeekSummary();
+  updateNutritionDashboard();
   refreshIcons();
 }
 
@@ -827,27 +1038,49 @@ function toggleFavorite(name) {
 }
 
 function autoPlanWeek() {
-  const breakfasts = ["鸡蛋羹", "烤蛋挞", "炒方便面"];
-  const lunches = ["炒方便面", "麻婆豆腐", "炒滑蛋", "鸡蛋羹"];
-  const dinners = [
-    "红烧肉 · 乾隆白菜 · 鸡蛋羹",
-    "麻婆豆腐 · 炒滑蛋 · 乾隆白菜",
-    "老式锅包肉 · 鸡蛋羹 · 乾隆白菜",
-    "尖叫牛蛙 · 炒滑蛋 · 鸡蛋羹",
-    "红烧肉 · 炒滑蛋 · 乾隆白菜",
-    "麻婆豆腐 · 乾隆白菜 · 鸡蛋羹",
-    "老式锅包肉 · 红烧肉 · 鸡蛋羹"
-  ];
+  const isSpicy = (recipe) =>
+    recipe.tags?.includes("微辣") || recipe.tags?.includes("重口味") || recipe.name.includes("辣");
+  const rank = (recipes) => recipes
+    .filter((recipe) => !nutritionProfile.noSpicy || !isSpicy(recipe))
+    .sort((a, b) => personalizedRecipeScore(b) - personalizedRecipeScore(a));
+  const breakfastPool = rank(recipeLibrary.filter((recipe) =>
+    recipe.category === "早餐" || (recipe.timeMinutes <= 20 && /蛋|粥|面|饼|包/.test(recipe.name))
+  ));
+  const lunchPool = rank(recipeLibrary.filter((recipe) =>
+    ["主食", "素菜", "荤菜", "水产"].includes(recipe.category) && recipe.timeMinutes <= 60
+  ));
+  const mainPool = rank(recipeLibrary.filter((recipe) => ["荤菜", "水产"].includes(recipe.category)));
+  const sidePool = rank(recipeLibrary.filter((recipe) => ["素菜", "汤羹"].includes(recipe.category)));
+  const usedNames = new Set();
 
-  weekPlan = getWeekDates().map((date, index) => ({
-    date: dateKey(date),
-    breakfast: breakfasts[index % breakfasts.length],
-    lunch: lunches[index % lunches.length],
-    dinner: dinners[index]
-  }));
+  const pick = (pool, startIndex = 0) => {
+    for (let offset = 0; offset < pool.length; offset += 1) {
+      const recipe = pool[(startIndex + offset) % pool.length];
+      if (recipe && !usedNames.has(recipe.name)) {
+        usedNames.add(recipe.name);
+        return recipe;
+      }
+    }
+    return pool[startIndex % pool.length];
+  };
+
+  weekPlan = getWeekDates().map((date, index) => {
+    const breakfast = pick(breakfastPool, index * 3);
+    const lunch = pick(lunchPool, index * 5);
+    const main = pick(mainPool, index * 7);
+    const sideOne = pick(sidePool, index * 4);
+    const sideTwo = pick(sidePool, index * 9 + 1);
+    return {
+      date: dateKey(date),
+      breakfast: breakfast?.name || "鸡蛋羹",
+      lunch: lunch?.name || "麻婆豆腐",
+      dinner: [main, sideOne, sideTwo].filter(Boolean).map((recipe) => recipe.name).join(" · ")
+    };
+  });
   saveWeekPlan();
   renderWeekPlan();
-  showToast("已根据家常菜库排好一周三餐");
+  updateNutritionDashboard();
+  showToast("已按营养目标、口味偏好和一桌荤素搭配排好一周");
 }
 
 function updateTodayShoppingFromWeek() {
@@ -895,6 +1128,10 @@ document.addEventListener("keydown", (event) => {
     closeCookingMode();
     return;
   }
+  if (profileModal.classList.contains("is-open")) {
+    closeProfileModal();
+    return;
+  }
   if (modal.classList.contains("is-open")) closeRecipe();
   if (plannerModal.classList.contains("is-open")) closePlannerPicker();
 });
@@ -917,6 +1154,33 @@ document.querySelector("#resetTimerButton").addEventListener("click", () => {
 });
 document.querySelectorAll("[data-timer-minutes]").forEach((button) => {
   button.addEventListener("click", () => setTimerMinutes(Number(button.dataset.timerMinutes)));
+});
+
+document.querySelector("#openProfileButton").addEventListener("click", openProfileModal);
+document.querySelector("#closeProfileModalButton").addEventListener("click", closeProfileModal);
+profileForm.addEventListener("input", updateProfilePreview);
+profileForm.addEventListener("change", updateProfilePreview);
+profileModal.addEventListener("click", (event) => {
+  if (event.target === profileModal) closeProfileModal();
+});
+document.querySelector("#saveProfileButton").addEventListener("click", () => {
+  if (!profileForm.reportValidity()) return;
+  nutritionProfile = readProfileForm();
+  dailyNutritionTargets = calculateNutritionTargets(nutritionProfile);
+  storeValue("meal-nutrition-profile", nutritionProfile);
+  closeProfileModal();
+  updateNutritionDashboard();
+  updateMatches();
+  showToast("营养目标已更新，推荐排序已经同步调整");
+});
+document.querySelector("#resetProfileButton").addEventListener("click", () => {
+  nutritionProfile = { ...defaultNutritionProfile };
+  dailyNutritionTargets = calculateNutritionTargets(nutritionProfile);
+  storeValue("meal-nutrition-profile", nutritionProfile);
+  loadProfileForm();
+  updateNutritionDashboard();
+  updateMatches();
+  showToast("已恢复默认营养档案");
 });
 
 document.querySelector("#generateListButton").addEventListener("click", () => {
@@ -1034,9 +1298,15 @@ plannerModal.addEventListener("click", (event) => {
   if (event.target === plannerModal) closePlannerPicker();
 });
 
+const savedPreferenceTags = new Set(readStoredValue("meal-recommendation-preferences", ["45 分钟内", "有荤有素"]));
 document.querySelectorAll(".preference-chip").forEach((button) => {
+  button.classList.toggle("is-active", savedPreferenceTags.has(button.textContent.trim()));
   button.addEventListener("click", () => {
     button.classList.toggle("is-active");
+    const activePreferences = [...document.querySelectorAll(".preference-chip.is-active")]
+      .map((item) => item.textContent.trim());
+    storeValue("meal-recommendation-preferences", activePreferences);
+    updateMatches();
   });
 });
 

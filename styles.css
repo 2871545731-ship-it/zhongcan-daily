@@ -2114,7 +2114,7 @@ img {
 
 .cooking-step-area {
   display: grid;
-  grid-template-rows: minmax(220px, 0.9fr) auto;
+  grid-template-rows: minmax(190px, 42vh) auto;
   min-width: 0;
 }
 

@@ -1,0 +1,15 @@
+{
+  "name": "zhongcan-daily",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "中餐家常菜每日推荐、周计划、采购与烹饪 Web 应用",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check app.js && node --check server.mjs && node --check sw.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

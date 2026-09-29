@@ -2261,20 +2261,38 @@ img {
 
 @media (max-width: 760px) {
   .cooking-header {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 10px;
     padding: 13px 16px;
   }
 
   .cooking-title {
+    display: block;
+    min-width: 0;
+  }
+
+  .cooking-title .eyebrow {
     display: none;
   }
 
+  .cooking-title h2 {
+    overflow: hidden;
+    font-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .cooking-layout {
-    display: block;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cooking-step-area {
+    order: 1;
   }
 
   .cooking-ingredients {
+    order: 2;
     padding: 20px 16px;
     border-right: 0;
     border-bottom: 1px solid #35322e;
@@ -2285,7 +2303,8 @@ img {
   }
 
   .cooking-step-image {
-    min-height: 210px;
+    height: 34vh;
+    min-height: 190px;
   }
 
   .cooking-step-content {
@@ -2307,6 +2326,7 @@ img {
   }
 
   .cooking-timer {
+    order: 3;
     display: block;
     padding: 24px 18px;
     border-top: 1px solid #35322e;

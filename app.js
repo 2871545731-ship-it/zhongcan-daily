@@ -218,7 +218,7 @@ function createInitialWeek() {
   }));
 }
 
-const plans = [
+const starterPlans = [
   {
     mood: "清爽下饭",
     time: "45 分钟",
@@ -254,7 +254,112 @@ const plans = [
   }
 ];
 
-let currentPlanIndex = 0;
+const recommendationSets = [
+  {
+    mood: "经典家常",
+    title: "有浓有淡，一桌都照顾到",
+    description: "红烧肉配乾隆白菜和鸡蛋羹，适合家人一起吃，口味有浓有淡。",
+    tags: ["一荤一素", "适合多人", "不辣"],
+    menu: ["简易红烧肉", "乾隆白菜", "鸡蛋羹"]
+  },
+  {
+    mood: "川味下饭",
+    title: "微辣开胃，晚餐更下饭",
+    description: "麻婆豆腐做主菜，滑蛋和西红柿鸡蛋汤负责平衡辣味与油腻。",
+    tags: ["下饭", "微辣", "快手"],
+    menu: ["麻婆豆腐", "炒滑蛋", "西红柿鸡蛋汤"]
+  },
+  {
+    mood: "酸甜开胃",
+    title: "大人孩子都喜欢的酸甜口",
+    description: "宫保鸡丁、酸辣土豆丝和西红柿炒鸡蛋，都是接受度很高的家常味。",
+    tags: ["家常", "下饭", "荤素搭配"],
+    menu: ["宫保鸡丁", "酸辣土豆丝", "西红柿炒鸡蛋"]
+  },
+  {
+    mood: "清淡鲜香",
+    title: "清蒸做主菜，晚餐轻一点",
+    description: "清蒸鲈鱼搭配西兰花和西红柿豆腐汤羹，蛋白质充足又不过分油腻。",
+    tags: ["清淡", "高蛋白", "少油"],
+    menu: ["清蒸鲈鱼", "蒜蓉西兰花", "西红柿豆腐汤羹"]
+  },
+  {
+    mood: "家常甜咸",
+    title: "一锅鸡翅配地三鲜",
+    description: "可乐鸡翅负责香气，地三鲜和鸡蛋羹补充蔬菜与温和口感。",
+    tags: ["家常", "下饭", "不辣"],
+    menu: ["可乐鸡翅", "地三鲜", "鸡蛋羹"]
+  },
+  {
+    mood: "经典回锅",
+    title: "香辣回锅肉，配一盘清爽凉菜",
+    description: "回锅肉配凉拌黄瓜和西红柿鸡蛋汤，适合想吃重口又不想太腻的晚上。",
+    tags: ["川味", "下饭", "清爽配菜"],
+    menu: ["回锅肉", "凉拌黄瓜", "西红柿鸡蛋汤"]
+  },
+  {
+    mood: "工作日快手",
+    title: "黄焖鸡配手撕包菜",
+    description: "主菜省心，包菜和鸡蛋羹把蔬菜和蛋白质补齐，适合下班后快速开饭。",
+    tags: ["快手", "家常", "荤素搭配"],
+    menu: ["黄焖鸡", "手撕包菜", "鸡蛋羹"]
+  },
+  {
+    mood: "小炒香气",
+    title: "牛肉小炒，蔬菜加量",
+    description: "小炒黄牛肉配干锅花菜和西红柿鸡蛋汤，口味丰富、下饭不单调。",
+    tags: ["高蛋白", "下饭", "微辣"],
+    menu: ["小炒黄牛肉", "干锅花菜", "西红柿鸡蛋汤"]
+  },
+  {
+    mood: "慢炖一锅",
+    title: "土豆炖排骨，家常耐吃",
+    description: "炖菜做主菜，搭配空心菜和木耳，适合周末慢慢准备一顿舒服晚餐。",
+    tags: ["炖菜", "家常", "荤素搭配"],
+    menu: ["土豆炖排骨", "蒜蓉空心菜", "凉拌木耳"]
+  },
+  {
+    mood: "清淡均衡",
+    title: "香菇滑鸡配两样时蔬",
+    description: "香菇滑鸡、白菜心和西红柿豆腐汤羹，适合想吃清淡但仍要吃饱的晚餐。",
+    tags: ["清淡", "高蛋白", "低油"],
+    menu: ["香菇滑鸡", "白灼菜心", "西红柿豆腐汤羹"]
+  }
+];
+
+const plans = recommendationSets.map((set, index) => {
+  const menu = set.menu
+    .map((name) => recipeLibrary.find((recipe) => recipe.name === name))
+    .filter(Boolean);
+  if (menu.length < 3) return starterPlans[index % starterPlans.length];
+
+  const duration = Math.max(...menu.map((recipe) => recipe.timeMinutes || 45)) + 8;
+  const calories = menu.reduce((total, recipe) => total + (recipe.caloriesValue || 0), 0);
+  const shopping = [];
+  menu.forEach((recipe) => {
+    (recipe.shoppingItems || []).forEach(([name, amount]) => {
+      if (shopping.length < 8 && !shopping.some((item) => item[0] === name)) {
+        shopping.push([name, amount]);
+      }
+    });
+  });
+
+  return {
+    mood: set.mood,
+    time: `${duration} 分钟`,
+    title: set.title,
+    description: set.description,
+    tags: set.tags,
+    calories: `${formatNumber(calories)} kcal`,
+    duration: `${duration} 分钟`,
+    menu,
+    shopping: shopping.length ? shopping : starterPlans[index % starterPlans.length].shopping
+  };
+});
+
+const dailyPlanIndex = Number(dateKey(new Date()).replace(/-/g, "")) % plans.length;
+let currentPlanIndex = dailyPlanIndex;
+let planRotationOffset = 0;
 let toastTimer;
 let servingCount = 1;
 let activeRecipeFilter = "全部";
@@ -1109,9 +1214,10 @@ function updateTodayShoppingFromWeek() {
 }
 
 document.querySelector("#swapPlanButton").addEventListener("click", () => {
-  currentPlanIndex = (currentPlanIndex + 1) % plans.length;
+  planRotationOffset = (planRotationOffset + 1) % plans.length;
+  currentPlanIndex = (dailyPlanIndex + planRotationOffset) % plans.length;
   renderPlan();
-  showToast("已换一桌，今晚试试这个搭配");
+  showToast(`已切换推荐组合 ${planRotationOffset + 1}/${plans.length}`);
 });
 
 document.querySelector("#cookPlanButton").addEventListener("click", () => {

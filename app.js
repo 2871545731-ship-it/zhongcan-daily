@@ -256,7 +256,7 @@ const plans = [
 
 let currentPlanIndex = 0;
 let toastTimer;
-let servingCount = 2;
+let servingCount = 1;
 let activeRecipeFilter = "全部";
 let selectedPantry = new Set();
 let favoriteRecipes = new Set();
@@ -303,7 +303,7 @@ function storeValue(key, value) {
   }
 }
 
-servingCount = readStoredValue("meal-serving-count", 2);
+servingCount = readStoredValue("meal-serving-count-v2", 1);
 selectedPantry = new Set(readStoredValue("meal-pantry-items", []));
 favoriteRecipes = new Set(readStoredValue("meal-favorite-recipes", []));
 weekPlan = readStoredValue("meal-week-plan", []);
@@ -315,6 +315,15 @@ function refreshIcons() {
   if (window.lucide && typeof window.lucide.createIcons === "function") {
     window.lucide.createIcons();
   }
+}
+
+function updateTodayLabel() {
+  const now = new Date();
+  const weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  document.querySelector("#todayLabel").textContent =
+    `${now.getMonth() + 1} 月 ${now.getDate()} 日 · ${weekdayNames[now.getDay()]} · ${hours}:${minutes}`;
 }
 
 function calculateNutritionTargets(profile) {
@@ -1194,14 +1203,14 @@ document.querySelector("#generateListButton").addEventListener("click", () => {
 
 document.querySelector("#increaseServingButton").addEventListener("click", () => {
   servingCount = Math.min(6, servingCount + 1);
-  storeValue("meal-serving-count", servingCount);
+  storeValue("meal-serving-count-v2", servingCount);
   renderPlan();
   showToast(`已调整为 ${servingCount} 人份`);
 });
 
 document.querySelector("#decreaseServingButton").addEventListener("click", () => {
   servingCount = Math.max(1, servingCount - 1);
-  storeValue("meal-serving-count", servingCount);
+  storeValue("meal-serving-count-v2", servingCount);
   renderPlan();
   showToast(`已调整为 ${servingCount} 人份`);
 });
@@ -1329,6 +1338,8 @@ renderPlan();
 renderPantry();
 renderRecipeGrid();
 renderWeekPlan();
+updateTodayLabel();
+window.setInterval(updateTodayLabel, 60_000);
 refreshIcons();
 
 let deferredInstallPrompt = null;

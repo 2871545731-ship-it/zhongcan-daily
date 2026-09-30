@@ -1,10 +1,10 @@
-const CACHE_NAME = "zhongcan-daily-v8";
+const CACHE_NAME = "zhongcan-daily-v9";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=20260930a",
-  "./app.js?v=20260930a",
-  "./data/recipes.js?v=20260930a",
+  "./styles.css?v=20260930b",
+  "./app.js?v=20260930b",
+  "./data/recipes.js?v=20260930b",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icon-192.png",
